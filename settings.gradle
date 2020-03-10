@@ -1,0 +1,2 @@
+rootProject.name = "fake-trading-platform"
+include 'common-components', 'spring-trading-core', 'ktor-trading-core'
