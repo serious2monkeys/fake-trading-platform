@@ -11,8 +11,9 @@
   "dependencies": {
     "core-js": "^3.6.4",
     "fibers": "^4.0.2",
+    "minimist": "^1.2.5",
     "sass": "^1.26.2",
-    "trading-vue-js": "^0.4.4",
+    "trading-vue-js": "^0.4.5",
     "vue": "^2.6.11",
     "vue-loader": "^15.9.0",
     "vue-resource": "^1.5.1",
