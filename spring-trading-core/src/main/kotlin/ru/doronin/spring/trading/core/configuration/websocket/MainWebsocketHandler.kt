@@ -73,7 +73,7 @@ class MainWebsocketHandler(
     /**
      * Decoding incoming messages as trade messages
      */
-    fun decode(inbound: Flux<DataBuffer>): Flux<SocketMessage<*>> = inbound.flatMap<Any> { buffer: DataBuffer ->
+    fun decode(inbound: Flux<DataBuffer>): Flux<SocketMessage<*>> = inbound.flatMap { buffer: DataBuffer ->
         decoder.decode(
             Mono.just(buffer),
             ResolvableType.forType(object : ParameterizedTypeReference<TradeMessage>() {}),

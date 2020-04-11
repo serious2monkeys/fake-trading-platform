@@ -1,5 +1,6 @@
 package ru.doronin.spring.trading.core.user
 
+import enums.UserRole
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate

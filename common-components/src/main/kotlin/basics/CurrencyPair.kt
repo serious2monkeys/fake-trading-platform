@@ -1,7 +1,14 @@
 package basics
 
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
 import enums.Currency
 import enums.ExchangeDirection
+import java.io.IOException
 
 data class CurrencyPair internal constructor(val baseCurrency: Currency,
                                              val targetCurrency: Currency) {

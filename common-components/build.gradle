@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.3.70'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.71'
 }
 
 group 'ru.doronin'
@@ -14,12 +14,7 @@ jar {
 }
 
 dependencies {
-    def jacksonVersion = "2.10.2"
-
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonVersion}")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}")
-
+    apply from: '../commonDependencies.gradle'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 

@@ -19,6 +19,11 @@ enum class CurrencyType {
     FIAT
 }
 
+enum class UserRole {
+    TRADER,
+    ADMIN
+}
+
 enum class ExchangeDirection {
     BUY_CRYPTO,
     SELL_CRYPTO,

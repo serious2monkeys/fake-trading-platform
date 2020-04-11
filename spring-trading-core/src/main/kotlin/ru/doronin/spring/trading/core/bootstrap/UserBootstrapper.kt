@@ -1,17 +1,16 @@
 package ru.doronin.spring.trading.core.bootstrap
 
 import com.github.javafaker.Faker
+import enums.UserRole
 import mu.KotlinLogging
 import org.apache.commons.lang3.RandomStringUtils
 import org.springframework.context.ApplicationListener
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.stereotype.Component
 import ru.doronin.spring.trading.core.user.PlatformUser
-import ru.doronin.spring.trading.core.user.UserRole
 import ru.doronin.spring.trading.core.user.UserService
 import java.security.SecureRandom
 
-private val logger = KotlinLogging.logger {}
 private val SECURE_RANDOM = SecureRandom()
 private val FAKER_INSTANCE = Faker(SECURE_RANDOM)
 
