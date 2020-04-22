@@ -12,14 +12,13 @@ import io.ktor.http.content.resources
 import io.ktor.http.content.static
 import io.ktor.jackson.JacksonConverter
 import io.ktor.response.respond
+import io.ktor.response.respondRedirect
 import io.ktor.routing.get
+import io.ktor.routing.post
 import io.ktor.routing.routing
-import io.ktor.sessions.SessionStorageMemory
-import io.ktor.sessions.Sessions
-import io.ktor.sessions.cookie
-import io.ktor.sessions.sessions
+import io.ktor.sessions.*
 import io.ktor.thymeleaf.Thymeleaf
-import io.ktor.thymeleaf.ThymeleafContent
+import io.ktor.thymeleaf.respondTemplate
 import io.ktor.util.InternalAPI
 import io.ktor.util.KtorExperimentalAPI
 import io.ktor.util.generateNonce
@@ -37,6 +36,9 @@ import ru.doronin.utils.JsonMapper
 import ru.doronin.utils.verifyPassword
 import java.time.Duration
 
+private const val SOCKET_SESSION_NAME = "KTOR_SOCKET_SESSION"
+private const val FORM_SESSION_NAME = "KTOR_FORM_SESSION"
+
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 @FlowPreview
@@ -44,8 +46,7 @@ fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 @ExperimentalCoroutinesApi
 @InternalAPI
 @Suppress("unused")
-@kotlin.jvm.JvmOverloads
-fun Application.module(testing: Boolean = false) {
+fun Application.module() {
     install(Thymeleaf) {
         setTemplateResolver(ClassLoaderTemplateResolver().apply {
             prefix = "templates/"
@@ -79,27 +80,33 @@ fun Application.module(testing: Boolean = false) {
     }
 
     install(Sessions) {
-        cookie<SimpleSession>(name = "KTOR_SOCKET_SESSION", storage = SessionStorageMemory())
+        cookie<SimpleSession>(name = SOCKET_SESSION_NAME, storage = SessionStorageMemory())
+        cookie<UserIdPrincipal>(name = FORM_SESSION_NAME, storage = SessionStorageMemory())
+    }
+
+    /**
+     * Common function for authentication
+     */
+    val authenticationValidationFunction: suspend ApplicationCall.(UserPasswordCredential) -> Principal? = {
+        val savedUser = MongoIntegrator.findUser(it.name).await()
+        if (savedUser != null && verifyPassword(it.password, savedUser.password)) {
+            UserIdPrincipal(it.name)
+        } else {
+            null
+        }
     }
 
     install(Authentication) {
-        basic("ktorBasicAuth") {
-            realm = "Ktor Server"
-            validate {
-                val savedUser = MongoIntegrator.findUser(it.name).await()
-                if (savedUser != null && verifyPassword(it.password, savedUser.password)) {
-                    UserIdPrincipal(it.name)
-                } else {
-                    null
-                }
-            }
-        }
-
         form("ktorFormAuth") {
             userParamName = "username"
             passwordParamName = "password"
             challenge("/login")
-            validate { if (it.name == "admin" && it.password == "password") UserIdPrincipal(it.name) else null }
+            validate(authenticationValidationFunction)
+        }
+
+        session<UserIdPrincipal>("ktorSessionAuth") {
+            challenge("/login")
+            validate { userIdPrincipal: UserIdPrincipal -> userIdPrincipal }
         }
     }
 
@@ -108,7 +115,6 @@ fun Application.module(testing: Boolean = false) {
     }
 
     routing {
-        // Static feature. Try to access `/static/ktor_logo.svg`
         static("/static") {
             resources("static")
         }
@@ -126,24 +132,43 @@ fun Application.module(testing: Boolean = false) {
             }
         }
 
-        authenticate("ktorBasicAuth", "ktorFormAuth") {
+        get("/login") {
+            call.respondTemplate(template = "login")
+        }
+
+        authenticate("ktorFormAuth", "ktorSessionAuth") {
             intercept(ApplicationCallPipeline.Features) {
-                if (call.sessions.get("KTOR_SOCKET_SESSION") == null) {
-                    call.sessions.set("KTOR_SOCKET_SESSION", SimpleSession(generateNonce()))
+                if (call.sessions.get<SimpleSession>() == null) {
+                    call.sessions.set(SimpleSession(generateNonce()))
                 }
             }
 
-            get("/") {
+            post("/login") {
                 val principal = call.principal<UserIdPrincipal>()!!
-                call.respond(ThymeleafContent(
+                call.sessions.set(principal)
+                call.respondRedirect("/index")
+            }
+
+            get("/") {
+                call.respondRedirect("/index")
+            }
+
+            get("/index") {
+                val principal = call.principal<UserIdPrincipal>()!!
+                call.respondTemplate(
                         template = "index",
-                        model = mapOf("user" to ThymeleafUser(1, principal.name)),
-                        contentType = ContentType.Text.Html)
+                        model = mapOf("user" to ThymeleafUser(1, principal.name))
                 )
             }
 
+            get("/logout") {
+                call.sessions.clear<UserIdPrincipal>()
+                call.sessions.clear<SimpleSession>()
+                call.respondRedirect("/login")
+            }
+
             webSocket("/streaming") {
-                val session = call.sessions.get("KTOR_SOCKET_SESSION") as SimpleSession?
+                val session = call.sessions.get<SimpleSession>()
                 if (session == null) {
                     close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
                     return@webSocket

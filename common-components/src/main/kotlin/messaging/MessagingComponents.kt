@@ -7,7 +7,7 @@ import enums.Currency
 /**
  * Generic socket message content
  */
-open class SocketMessage<out T>(
+sealed class SocketMessage<out T>(
     open val timestamp: Long,
     open val type: MessageType,
     open val exchange: CryptoExchange,
