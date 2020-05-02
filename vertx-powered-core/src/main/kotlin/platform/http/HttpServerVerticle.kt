@@ -3,8 +3,10 @@ package platform.http
 import enums.UserRole
 import io.vertx.core.*
 import io.vertx.core.http.HttpMethod
+import io.vertx.core.http.ServerWebSocket
 import io.vertx.core.json.JsonObject
 import io.vertx.core.json.jackson.DatabindCodec
+import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.auth.AbstractUser
 import io.vertx.ext.auth.AuthProvider
 import io.vertx.ext.web.Router
@@ -24,6 +26,7 @@ import platform.utils.verifyPassword
 class HttpServerVerticle : AbstractVerticle() {
   private lateinit var templateEngine: ThymeleafTemplateEngine
   private lateinit var customAuthProvider: AuthProvider
+  private val log = LoggerFactory.getLogger(javaClass)
 
   override fun start(startPromise: Promise<Void>) {
     configureTemplateEngine()
@@ -48,6 +51,37 @@ class HttpServerVerticle : AbstractVerticle() {
    * Dedicated configuration of Http-server
    */
   private fun configureWebServer(): Future<Void> {
+    vertx.createHttpServer()
+      .requestHandler(configureRouter())
+      .webSocketHandler(configureSocketHandler())
+      .listen(8080)
+    return Future.succeededFuture()
+  }
+
+  /**
+   * Configuration of websocket connection handler
+   */
+  private fun configureSocketHandler(): Handler<ServerWebSocket> = Handler { serverSocket ->
+    if (serverSocket.path() == "/streaming") {
+      serverSocket.textMessageHandler { clientMessage -> log.info("Client sent: $clientMessage") }
+      val messageConsumer = vertx.eventBus().consumer<String>(PRICES_FEED_BUS) { feedMessage ->
+        serverSocket.writeTextMessage(feedMessage.body())
+      }
+      serverSocket.closeHandler { messageConsumer.unregister() }
+      serverSocket.exceptionHandler { event ->
+        log.warn("Error occurred in WS", event)
+        messageConsumer.unregister()
+      }
+    } else {
+      serverSocket.reject(404)
+    }
+  }
+
+  /**
+   * Create a router configured in imperative way
+   */
+  @SuppressWarnings("deprecation")
+  private fun configureRouter(): Router {
     val router = Router.router(vertx)
     router.route()
       .handler(SessionHandler.create(LocalSessionStore.create(vertx)))
@@ -86,14 +120,13 @@ class HttpServerVerticle : AbstractVerticle() {
       context.clearUser()
       context.response().putHeader("location", "/login").setStatusCode(302).end()
     }
-
-    vertx.createHttpServer().requestHandler(router).listen(8080)
-    return Future.succeededFuture()
+    return router
   }
 
   /**
    * Configure authentication provider
    */
+  @SuppressWarnings("deprecation")
   private fun configureAuthProvider(): Future<Void> {
     customAuthProvider = AuthProvider { authInfo, resultHandler ->
       if (authInfo.containsKey("username") && authInfo.containsKey("password")) {
@@ -134,5 +167,9 @@ class HttpServerVerticle : AbstractVerticle() {
       }
     }
     return Future.succeededFuture()
+  }
+
+  companion object {
+    const val PRICES_FEED_BUS = "prices_feed_bus"
   }
 }

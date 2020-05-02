@@ -18,6 +18,7 @@ import io.vertx.core.json.JsonObject
 import io.vertx.core.json.jackson.DatabindCodec
 import io.vertx.core.logging.LoggerFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import platform.integration.ExchangesVerticle
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Kraken integration unit
  */
+@ExperimentalCoroutinesApi
 class KrakenVerticle : AbstractVerticle() {
   private val log = LoggerFactory.getLogger(javaClass)
 
@@ -108,8 +110,8 @@ class KrakenVerticle : AbstractVerticle() {
       val jsonNode = DatabindCodec.mapper().readTree(message)
       if (isMessageValid.test(jsonNode)) {
         val array = jsonNode as ArrayNode
-        convertToPriceMessages(array).forEach {
-          vertx.eventBus().send(ExchangesVerticle.PRICE_MESSAGE_BUS, JsonObject.mapFrom(it))
+        convertToPriceMessages(array).forEach {priceMessage ->
+          vertx.eventBus().send(ExchangesVerticle.PRICE_MESSAGE_BUS, JsonObject.mapFrom(priceMessage).encode())
         }
       }
     }

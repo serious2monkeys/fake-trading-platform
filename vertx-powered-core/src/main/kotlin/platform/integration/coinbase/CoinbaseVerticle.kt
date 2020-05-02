@@ -14,10 +14,7 @@ import io.vertx.core.json.jackson.DatabindCodec
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.kotlin.config.configRetrieverOptionsOf
 import io.vertx.kotlin.config.configStoreOptionsOf
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import platform.integration.ExchangesVerticle
 import java.net.URI
 import java.util.concurrent.TimeUnit
@@ -106,12 +103,13 @@ class CoinbaseVerticle : AbstractVerticle() {
   /**
    * Function to operate incoming websocket messages
    */
+  @ExperimentalCoroutinesApi
   private val messageOperator: (testMessage: String) -> Unit = { textMessage ->
     GlobalScope.launch(Dispatchers.IO) {
       val jsonNode = DatabindCodec.mapper().readTree(textMessage)
       if (isCoinbaseTick.test(jsonNode)) {
         DatabindCodec.mapper().treeToValue<CoinbaseTick>(jsonNode)?.let { tick: CoinbaseTick ->
-          vertx.eventBus().send(ExchangesVerticle.PRICE_MESSAGE_BUS, JsonObject.mapFrom(tick.toPriceMessage()))
+          vertx.eventBus().send(ExchangesVerticle.PRICE_MESSAGE_BUS, JsonObject.mapFrom(tick.toPriceMessage()).encode())
         }
       }
     }
