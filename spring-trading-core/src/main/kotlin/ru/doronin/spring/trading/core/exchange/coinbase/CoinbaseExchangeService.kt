@@ -11,6 +11,8 @@ import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClien
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
 import reactor.core.publisher.SignalType
+import reactor.util.retry.Retry
+import ru.doronin.spring.trading.core.candles.CandleService
 import ru.doronin.spring.trading.core.exchange.ExchangeService
 import java.net.URI
 import java.time.Duration
@@ -20,7 +22,10 @@ import java.util.logging.Level
  * Exchange service implementation to integrate with Coinbase
  */
 @Service
-class CoinbaseExchangeService(val mapper: ObjectMapper) : ExchangeService, ApplicationListener<ContextRefreshedEvent> {
+class CoinbaseExchangeService(
+    private val mapper: ObjectMapper,
+    private val candleService: CandleService
+) : ExchangeService, ApplicationListener<ContextRefreshedEvent> {
     @Value(value = "\${coinbase.credentials.key}")
     private lateinit var apiKey: String
 
@@ -48,13 +53,13 @@ class CoinbaseExchangeService(val mapper: ObjectMapper) : ExchangeService, Appli
         ReactorNettyWebSocketClient()
             .execute(
                 URI.create(engines.coinbase.FEED_ADDRESS),
-                CoinbaseSocketHandler(sink, mapper, CoinbaseProCredentials(apiKey, passphrase, secret))
+                CoinbaseSocketHandler(sink, mapper, CoinbaseProCredentials(apiKey, passphrase, secret), candleService)
             )
             .log("Connected to Coinbase", Level.INFO, SignalType.ON_SUBSCRIBE)
-            .retryWhen { e: Flux<Throwable> ->
+            .retryWhen(Retry.withThrowable { e: Flux<Throwable> ->
                 e.zipWith(Flux.range(0, Int.MAX_VALUE))
                     .delayElements(Duration.ofMillis(2000))
-            }
+            })
             .subscribe()
     }
 }

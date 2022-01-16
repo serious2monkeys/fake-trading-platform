@@ -3,3 +3,7 @@ coinbase:
     key: QBYqutYKolKNyZfM
     passphrase: KboP7meZUYT9PyYOTEfAQKm3dU1nwLzr
     secret: secret42
+spring:
+    mongodb:
+        embedded:
+            version: '4.0.12'

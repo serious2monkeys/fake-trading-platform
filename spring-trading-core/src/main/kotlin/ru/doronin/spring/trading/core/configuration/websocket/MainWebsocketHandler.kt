@@ -32,13 +32,13 @@ class MainWebsocketHandler(
     private val encoder = Jackson2JsonEncoder(
         objectMapper,
         MimeType.valueOf(MediaType.APPLICATION_JSON_VALUE),
-        MimeType.valueOf(MediaType.APPLICATION_STREAM_JSON_VALUE)
+        MimeType.valueOf(MediaType.APPLICATION_NDJSON_VALUE)
     )
 
     private val decoder = Jackson2JsonDecoder(
         objectMapper,
         MimeType.valueOf(MediaType.APPLICATION_JSON_VALUE),
-        MimeType.valueOf(MediaType.APPLICATION_STREAM_JSON_VALUE)
+        MimeType.valueOf(MediaType.APPLICATION_NDJSON_VALUE)
     )
 
     override fun handle(session: WebSocketSession): Mono<Void> =
@@ -80,7 +80,6 @@ class MainWebsocketHandler(
             MediaType.APPLICATION_JSON, emptyMap<String, Any>()
         )
     }.map { it as SocketMessage<*> }
-
 
     /**
      * Actual processing of incoming messages

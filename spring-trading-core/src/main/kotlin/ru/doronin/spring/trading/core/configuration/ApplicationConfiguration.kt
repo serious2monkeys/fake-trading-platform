@@ -1,13 +1,13 @@
 package ru.doronin.spring.trading.core.configuration
 
+import basics.CurrencyPair
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.MapperFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.springframework.boot.jackson.JsonComponent
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -31,5 +31,17 @@ class ApplicationConfiguration {
         mapper.registerModule(JavaTimeModule())
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         return mapper
+    }
+
+    @JsonComponent
+    class PairSerializer : JsonSerializer<CurrencyPair>() {
+        override fun serialize(value: CurrencyPair, gen: JsonGenerator, serializers: SerializerProvider) =
+            gen.writeString(value.toString())
+    }
+
+    @JsonComponent
+    class PairDeserializer : JsonDeserializer<CurrencyPair>() {
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CurrencyPair =
+            CurrencyPair.fromString(p.valueAsString)
     }
 }

@@ -6,13 +6,15 @@ import engines.coinbase.CoinbaseProCredentials
 import engines.coinbase.CoinbaseTick
 import engines.coinbase.isCoinbaseTick
 import messaging.SocketMessage
-import org.springframework.beans.factory.annotation.Value
+import mu.KotlinLogging
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
+import ru.doronin.spring.trading.core.candles.CandleService
+import ru.doronin.spring.trading.core.exchange.toCandle
 
 /**
  * Socket handler implementation for Coinbase exchange
@@ -20,8 +22,10 @@ import reactor.core.scheduler.Schedulers
 class CoinbaseSocketHandler(
     private val sink: FluxSink<SocketMessage<*>>,
     private val mapper: ObjectMapper,
-    private val credentials: CoinbaseProCredentials
+    private val credentials: CoinbaseProCredentials,
+    private val candleService: CandleService
 ) : WebSocketHandler {
+    private val logger = KotlinLogging.logger {}
 
     override fun handle(session: WebSocketSession): Mono<Void> =
         Flux.just(engines.coinbase.generateSubscriptionMessage(credentials))
@@ -32,7 +36,9 @@ class CoinbaseSocketHandler(
             .filter(isCoinbaseTick::test)
             .publishOn(Schedulers.boundedElastic())
             .map { node -> mapper.treeToValue<CoinbaseTick>(node)!!.toPriceMessage() }
-            .log()
-            .doOnNext { sink.next(it) }
+            .doOnNext { message ->
+                candleService.save(message.toCandle()).subscribe { logger.info { "$it saved" } }
+                sink.next(message)
+            }
             .then()
 }

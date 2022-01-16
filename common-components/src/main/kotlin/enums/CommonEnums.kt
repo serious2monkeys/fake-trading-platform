@@ -9,9 +9,9 @@ enum class Currency(private val type: CurrencyType) {
     BTC(CurrencyType.CRYPTO),
     ETH(CurrencyType.CRYPTO);
 
-    val isCrypto = type == CurrencyType.CRYPTO
+    val isCrypto by lazy { type == CurrencyType.CRYPTO }
 
-    val isFiat = type == CurrencyType.FIAT
+    val isFiat by lazy { type == CurrencyType.FIAT }
 }
 
 enum class CurrencyType {
