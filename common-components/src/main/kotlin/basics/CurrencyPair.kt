@@ -1,14 +1,6 @@
 package basics
 
-import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.DeserializationContext
-import com.fasterxml.jackson.databind.JsonDeserializer
-import com.fasterxml.jackson.databind.JsonSerializer
-import com.fasterxml.jackson.databind.SerializerProvider
 import enums.Currency
-import enums.ExchangeDirection
-import java.io.IOException
 
 data class CurrencyPair internal constructor(val baseCurrency: Currency,
                                              val targetCurrency: Currency) {
@@ -18,13 +10,6 @@ data class CurrencyPair internal constructor(val baseCurrency: Currency,
      */
     override fun toString(): String {
         return String.format(CONVERT_PATTERN, baseCurrency.name, targetCurrency.name)
-    }
-
-    val direction: ExchangeDirection = when {
-        baseCurrency.isCrypto and targetCurrency.isCrypto -> ExchangeDirection.CONVERT_CRYPTO
-        baseCurrency.isCrypto and targetCurrency.isFiat -> ExchangeDirection.SELL_CRYPTO
-        baseCurrency.isFiat and targetCurrency.isCrypto -> ExchangeDirection.BUY_CRYPTO
-        else -> ExchangeDirection.CONVERT_FIAT
     }
 
     companion object {
@@ -40,8 +25,8 @@ data class CurrencyPair internal constructor(val baseCurrency: Currency,
                 throw IllegalArgumentException("Illegal currency pair value")
             }
             return CurrencyPair(
-                Currency.valueOf(currencies[0].toUpperCase()),
-                Currency.valueOf(currencies[1].toUpperCase())
+                    Currency.valueOf(currencies[0].uppercase()),
+                    Currency.valueOf(currencies[1].uppercase())
             )
         }
     }
