@@ -43,7 +43,7 @@ class KrakenSocketHandler(
             .publishOn(Schedulers.boundedElastic())
             .flatMap { node -> Flux.fromIterable(engines.kraken.convertToPriceMessages(node as ArrayNode)) }
             .doOnNext { message ->
-                candleService.save(message.toCandle()).subscribe { logger.info { "$it saved" } }
+                candleService.save(message.toCandle()).subscribe { logger.debug { "$it saved" } }
                 sink.next(message)
             }
             .then()

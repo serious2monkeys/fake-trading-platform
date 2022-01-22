@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.server.body
 import reactor.core.publisher.Mono
 import ru.doronin.spring.trading.core.candles.CandleService
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 
@@ -43,8 +44,8 @@ class RoutingConfiguration(
     private fun handleCandlesRequest(): Mono<ServerResponse> =
         ServerResponse.ok().body(
             candleService.loadAllForPeriod(
-                Instant.now().minusSeconds(3600),
+                Instant.now().minusSeconds(300),
                 Instant.now()
-            )
+            ).distinct { candle -> candle.timestamp.truncatedTo(ChronoUnit.MILLIS) }
         )
 }

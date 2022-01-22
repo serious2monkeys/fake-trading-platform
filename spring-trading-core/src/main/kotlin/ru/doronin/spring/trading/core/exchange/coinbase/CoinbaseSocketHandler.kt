@@ -37,7 +37,7 @@ class CoinbaseSocketHandler(
             .publishOn(Schedulers.boundedElastic())
             .map { node -> mapper.treeToValue<CoinbaseTick>(node)!!.toPriceMessage() }
             .doOnNext { message ->
-                candleService.save(message.toCandle()).subscribe { logger.info { "$it saved" } }
+                candleService.save(message.toCandle()).subscribe { logger.debug { "$it saved" } }
                 sink.next(message)
             }
             .then()
